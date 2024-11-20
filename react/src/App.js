@@ -7,7 +7,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        I am making a change on my new branch, "corey-changes"
+        Corey is awesome
       </header>
     </div>
   );
