@@ -1,6 +1,5 @@
 const express = require("express");
 const bodyParser = require('body-parser');
-const nodemailer = require('nodemailer');
 const axios = require("axios");
 const mysql = require('mysql2');
 const cors = require('cors');
@@ -10,43 +9,18 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 const route = express.Router();
-const port = process.env.PORT || 5001;app.use('/v1', route);
+const port = process.env.PORT || 5001;
+app.use('/api', route);
 app.listen(port, () => {    
   console.log(`Server listening on port ${port}`);
 });
 
-route.get('/simple-get', (req, res) => {
-  res.send("here");
-});
-
-route.get('/dynamic-get/:text', (req, res) => {
-  res.send(req.params.text);
-});
-
-route.get('/pokemon/:name', async (req, res) => {
-  const pokemonName = req.params.name.toLowerCase();
-
-  try {
-    const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`);
-    
-    const pokemonData = {
-      name: response.data.name,
-      id: response.data.id,
-      height: response.data.height,
-      weight: response.data.weight,
-    };
-
-    res.json(pokemonData);
-  } catch (error) {
-    res.status(404).send({ error: "Pokémon not found!" });
-  }
-});
-
+// Database connection
 const db = mysql.createConnection({
   host: '127.0.0.1',
   user: 'root',
   password: 'password',
-  database: 'devx',
+  database: 'movie_finder',
   port: 3306
 });
 
@@ -58,33 +32,45 @@ db.connect((err) => {
   }
 });
 
-route.post('/add-user', (req, res) => {
-  const { email, password } = req.body;
-
-  const query = 'INSERT INTO users (user_email, user_password) VALUES (?, ?)';
-  
-  db.query(query, [email, password], (err, result) => {
-    if (err) {
-      return res.status(500).send('Error adding user to the database.');
+// Search movies
+route.get('/search', async (req, res) => {
+  const { title, genre } = req.query;
+  try {
+    const response = await axios.get(`http://www.omdbapi.com/?apikey=YOUR_API_KEY&s=${title || ''}&type=movie`);
+    let movies = response.data.Search;
+    if (genre) {
+      movies = movies.filter(movie =>
+        movie.Genre && movie.Genre.toLowerCase().includes(genre.toLowerCase())
+      );
     }
-    res.status(200).send('User added successfully.');
+    res.json(movies || []);
+  } catch (error) {
+    res.status(500).send('Error fetching movies');
+  }
+});
+
+
+// Get movie details
+route.get('/movie/:id', async (req, res) => {
+  const movieId = req.params.id;
+  try {
+    const response = await axios.get(`http://www.omdbapi.com/?apikey=YOUR_API_KEY&i=${movieId}&plot=full`);
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).send('Error fetching movie details');
+  }
+});
+
+// Favorite movies CRUD
+route.post('/favorites', (req, res) => {
+  const { userId, movieId } = req.body;
+  const query = 'INSERT INTO favorites (user_id, movie_id) VALUES (?, ?)';
+  db.query(query, [userId, movieId], (err, result) => {
+    if (err) {
+      return res.status(500).send('Error adding movie to favorites');
+    }
+    res.status(200).send('Movie added to favorites');
   });
 });
 
-route.post('/verify-user', (req, res) => {
-  const { email, password } = req.body;
-
-  const query = 'SELECT * FROM users WHERE user_email = ? AND user_password = ?';
-  
-  db.query(query, [email, password], (err, results) => {
-    if (err) {
-      return res.status(500).send('Error verifying user credentials.');
-    }
-
-    if (results.length > 0) {
-      res.status(200).send('User verified successfully.');
-    } else {
-      res.status(401).send('Invalid email or password.');
-    }
-  });
-});
+// Additional favorite movies routes (get, update, delete) omitted for brevity
