@@ -22,7 +22,7 @@ const CategoryBox = ({ icon: Icon, label, selected, onClick }) => {
       onMouseOver={(e) => e.currentTarget.style.color = '#1e40af'}
       onMouseOut={(e) => e.currentTarget.style.color = selected ? '#1e40af' : '#6b7280'}
     >
-      <Icon size={30} />
+      <Icon size={30} color="black" />
       <div style={{ fontSize: '14px', fontWeight: '500' }}>{label}</div>
     </div>
   );

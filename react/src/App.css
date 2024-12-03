@@ -1,3 +1,9 @@
+.clickable-title:hover {
+  transform: scale(1.02);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');
+
 .App {
   text-align: center;
   font-family: Arial, sans-serif;

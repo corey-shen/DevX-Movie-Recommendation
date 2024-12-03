@@ -15,6 +15,12 @@ function App() {
     { label: "Action", icon: FaBolt },
   ];
 
+  const resetToHome = () => {
+    setSelectedCategory("");
+    setMovies([]);
+    setError(null);
+  };
+
   const fetchMovies = async (category) => {
     setIsLoading(true);
     setError(null);
@@ -53,7 +59,13 @@ function App() {
 
   return (
     <div className="App" style={styles.container}>
-      <h1 style={styles.title}>Movie Recommender</h1>
+      <h1
+        style={styles.title}
+        onClick={resetToHome}
+        className="clickable-title"
+      >
+        Movie Recommender!
+      </h1>
       <div style={styles.categoriesRow}>
         {categories.map((category, index) => (
           <CategoryBox
@@ -103,9 +115,15 @@ const styles = {
     textAlign: "center",
   },
   title: {
-    fontSize: "2rem",
-    fontWeight: "bold",
-    marginBottom: "2rem",
+    fontSize: '3.5rem',
+    fontWeight: 'bold',
+    marginBottom: '2rem',
+    fontFamily: "'Montserrat', sans-serif",
+    background: 'linear-gradient(45deg, #2196F3, #1565C0)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease-in-out',
   },
   categoriesRow: {
     display: "flex",
