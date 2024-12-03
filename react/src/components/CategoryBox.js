@@ -1,27 +1,29 @@
 import React from "react";
-import { IconType } from "react-icons";
 
 const CategoryBox = ({ icon: Icon, label, selected, onClick }) => {
+  const boxStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '12px',
+    borderBottom: '2px solid',
+    borderBottomColor: selected ? '#1e40af' : 'transparent',
+    color: selected ? '#1e40af' : '#6b7280',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease-in-out'
+  };
+
   return (
     <div
       onClick={onClick}
-      className={`
-        flex
-        flex-col
-        items-center
-        justify-center
-        gap-2
-        p-3
-        border-b-2
-        hover:text-blue-800
-        transition
-        cursor-pointer
-        ${selected ? "border-b-blue-800" : "border-transparent"}
-        ${selected ? "text-blue-800" : "text-gray-500"}
-      `}
+      style={boxStyle}
+      onMouseOver={(e) => e.currentTarget.style.color = '#1e40af'}
+      onMouseOut={(e) => e.currentTarget.style.color = selected ? '#1e40af' : '#6b7280'}
     >
       <Icon size={30} />
-      <div className="font-medium text-sm">{label}</div>
+      <div style={{ fontSize: '14px', fontWeight: '500' }}>{label}</div>
     </div>
   );
 };

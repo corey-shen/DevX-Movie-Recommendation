@@ -1,76 +1,76 @@
 const express = require("express");
-const bodyParser = require('body-parser');
 const axios = require("axios");
-const mysql = require('mysql2');
-const cors = require('cors');
+const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cors());
-const route = express.Router();
 const port = process.env.PORT || 5001;
-app.use('/api', route);
-app.listen(port, () => {    
-  console.log(`Server listening on port ${port}`);
-});
 
-// Database connection
-const db = mysql.createConnection({
-  host: '127.0.0.1',
-  user: 'root',
-  password: 'password',
-  database: 'movie_finder',
-  port: 3306
-});
+app.use(cors());
+app.use(express.json());
 
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to the database:', err.message);
-  } else {
-    console.log('Connected to the MySQL database.');
-  }
-});
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
-// Search movies
-route.get('/search', async (req, res) => {
-  const { title, genre } = req.query;
+app.get("/api/search", async (req, res) => {
+  const { genre } = req.query;
+
   try {
-    const response = await axios.get(`http://www.omdbapi.com/?apikey=YOUR_API_KEY&s=${title || ''}&type=movie`);
-    let movies = response.data.Search;
-    if (genre) {
-      movies = movies.filter(movie =>
-        movie.Genre && movie.Genre.toLowerCase().includes(genre.toLowerCase())
-      );
+    const genreMap = {
+      Comedy: 35,
+      Horror: 27,
+      Action: 28,
+      PG: 10751,
+    };
+    const genreId = genreMap[genre];
+
+    if (!genreId) {
+      return res.status(400).json({ error: "Invalid genre" });
     }
-    res.json(movies || []);
+
+    console.log('TMDB API Key:', process.env.TMDB_API_KEY ? 'Present' : 'Missing'); // Debug log
+    console.log('Making request to TMDB for genre:', genre, 'genreId:', genreId); // Debug log
+    // Improved API call with error handling and timeout
+    const response = await axios({
+      method: 'get',
+      url: `${TMDB_BASE_URL}/discover/movie`,
+        params: {
+          api_key: TMDB_API_KEY,
+          with_genres: genreId,
+          sort_by: "popularity.desc",
+          language: "en-US",
+        page: 1, // Add pagination
+        include_adult: false // Ensure family-friendly content
+        },
+      timeout: 5000 // 5 second timeout
+    });
+
+    if (!response.data || !response.data.results) {
+      throw new Error('Invalid response from TMDB API');
+      }
+
+    const movies = response.data.results
+      .filter(movie => movie.poster_path) // Only include movies with posters
+      .map((movie) => ({
+      id: movie.id,
+      title: movie.title,
+      poster: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+      release_date: movie.release_date,
+    }));
+
+    console.log('Successfully fetched and processed movies:', movies.length); // Debug log
+    res.json(movies);
   } catch (error) {
-    res.status(500).send('Error fetching movies');
+    console.error("Detailed error:", error); // More detailed error logging
+    console.error("Error response:", error.response?.data); // Log API error response if available
+    res.status(500).json({ 
+      error: "Failed to fetch movies",
+      message: error.message,
+      details: error.response?.data // Include API error details if available
+    });
   }
 });
 
-
-// Get movie details
-route.get('/movie/:id', async (req, res) => {
-  const movieId = req.params.id;
-  try {
-    const response = await axios.get(`http://www.omdbapi.com/?apikey=YOUR_API_KEY&i=${movieId}&plot=full`);
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).send('Error fetching movie details');
-  }
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
-
-// Favorite movies CRUD
-route.post('/favorites', (req, res) => {
-  const { userId, movieId } = req.body;
-  const query = 'INSERT INTO favorites (user_id, movie_id) VALUES (?, ?)';
-  db.query(query, [userId, movieId], (err, result) => {
-    if (err) {
-      return res.status(500).send('Error adding movie to favorites');
-    }
-    res.status(200).send('Movie added to favorites');
-  });
-});
-
-// Additional favorite movies routes (get, update, delete) omitted for brevity
